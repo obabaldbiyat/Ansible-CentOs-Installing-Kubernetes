@@ -1,0 +1,94 @@
+---
+- hosts: all
+  become: yes
+  vars_files:
+  - env_variables 
+  tasks:
+  - name: Creating a repository file for Kubernetes
+    file:
+     path: /etc/yum.repos.d/kubernetes.repo
+     state: touch
+
+  - name: Adding repository details in Kubernetes repo file.
+    blockinfile:
+     path: /etc/yum.repos.d/kubernetes.repo
+     block: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      enabled=1
+      gpgcheck=1
+      repo_gpgcheck=1
+      gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+  - name: Ajouter le dépôt YUM de Docker
+    yum_repository:
+      name: Docker
+      description: Docker Repository
+      baseurl: https://download.docker.com/linux/centos/8/$basearch/stable
+      enabled: yes
+      gpgcheck: yes
+      gpgkey: https://download.docker.com/linux/centos/gpg
+
+  - name: Remove existing kubelet package
+    yum:
+      name: kubelet
+      state: absent
+  - name: Install Containerd
+    yum:
+      name: containerd.io
+      state: present
+  - name: Create Containerd directory
+    file:
+      path: /etc/containerd
+      state: directory
+
+  - name: Add Containerd configuration
+    command: /usr/bin/containerd config default > /etc/containerd/config.toml       
+    ignore_errors: yes
+  
+  - name: Starting and Enabling the required services
+    service:
+      name: docker
+      state: started
+      enabled: yes
+    ignore_errors: yes
+
+  - name: Configure systemd cgroup driver for Containerd
+    lineinfile:
+      path: /etc/containerd/config.toml
+      regexp: '            SystemdCgroup = false'
+      line: '            SystemdCgroup = true'
+
+  - name: Enable and start Containerd service
+    systemd:
+      name: containerd
+      state: restarted
+      enabled: yes
+      daemon_reload: yes
+
+  - name: Installing required packages
+    yum:
+     name: "{{ item }}"
+     state: present
+    with_items: "{{ packages }}"
+
+  - name: Starting and Enabling the required services
+    service:
+     name: "{{ item }}"
+     state: started
+     enabled: yes
+    with_items: "{{ services }}"
+
+  - name: Allow Network Ports in Firewalld
+    firewalld:
+     port: "{{ item }}"
+     state: enabled
+     permanent: yes
+     immediate: yes
+    with_items: "{{ ports }}"
+
+  - name: Enabling Bridge Firewall Rule
+    shell: "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
+
