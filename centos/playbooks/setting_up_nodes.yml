@@ -48,13 +48,6 @@
     command: /usr/bin/containerd config default > /etc/containerd/config.toml       
     ignore_errors: yes
   
-  - name: Starting and Enabling the required services
-    service:
-      name: docker
-      state: started
-      enabled: yes
-    ignore_errors: yes
-
   - name: Configure systemd cgroup driver for Containerd
     lineinfile:
       path: /etc/containerd/config.toml
@@ -67,7 +60,42 @@
       state: restarted
       enabled: yes
       daemon_reload: yes
+  - name: Uncomment disabled_plugins line and remove cri from the list
+    lineinfile:
+      path: /etc/containerd/config.toml
+      regexp: '^disabled_plugins\s*='
+      line: 'disabled_plugins = []'
 
+  - name: Load br_netfilter kernel module
+    modprobe:
+      name: br_netfilter
+      state: present
+
+  - name: Ensure br_netfilter module is loaded at boot
+    lineinfile:
+      dest: /etc/modules-load.d/br_netfilter.conf
+      line: 'br_netfilter'
+      create: true
+
+  - name: Enable bridge-nf-call-iptables
+    sysctl:
+      name: net.bridge.bridge-nf-call-iptables
+      value: 1
+      state: present
+
+  - name: Enable IP forwarding
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+
+  - name: Apply sysctl changes
+    command: sysctl -p
+
+  - name: Restart Containerd service
+    service:
+      name: containerd
+      state: restarted
   - name: Installing required packages
     yum:
      name: "{{ item }}"

@@ -4,6 +4,7 @@
   vars:
    packages:
    - docker*
+   - containerd
    - kubeadm
    - kubectl
    - kubelet

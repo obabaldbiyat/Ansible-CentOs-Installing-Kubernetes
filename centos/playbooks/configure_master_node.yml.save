@@ -8,7 +8,7 @@
     shell: kubeadm config images pull
 
   - name: Initializing Kubernetes cluster
-    shell: sudo kubeadm init --v=5 --upload-certs --control-plane-endpoint master:6443 --pod-network-cidr=192.168.0.0/16
+    shell: kubeadm init --apiserver-advertise-address {{ad_addr}} --pod-network-cidr={{cidr_v}}
     register: output
 
   - name: Storing Logs and Generated token for future purpose.
@@ -16,12 +16,11 @@
 
   - name: Copying required files
     shell: |
-     modprobe overlay
-     modprobe br_netfilter
      rm /etc/containerd/config.toml
      systemctl restart containerd
+     kubeadm init --pod-network-cidr=192.168.0.0/16
      export KUBECONFIG=/etc/kubernetes/admin.conf
-     mkdir -p $HOME/.kube
+      mkdir -p $HOME/.kube
      sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
      sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
