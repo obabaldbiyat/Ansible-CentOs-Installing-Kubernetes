@@ -101,7 +101,18 @@
      name: "{{ item }}"
      state: present
     with_items: "{{ packages }}"
+      
+  - name: Disable firewalld
+    systemd:
+      name: firewalld
+      state: stopped
+      enabled: no
 
+  - name: Install tc
+    yum:
+      name: iproute-tc
+      state: present
+  
   - name: Starting and Enabling the required services
     service:
      name: "{{ item }}"

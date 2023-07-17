@@ -9,7 +9,7 @@
 
 
   - name: Initializing Kubernetes cluster
-    shell: sudo kubeadm init --v=5 --upload-certs --control-plane-endpoint master:6443 --pod-network-cidr=192.168.0.0/16
+    shell: kubeadm init --upload-certs --control-plane-endpoint master:6443 --pod-network-cidr=192.168.0.0/16
     register: output
 
   - name: Copying required files
@@ -36,6 +36,11 @@
   - name: Storing Logs and Generated token for future purpose.
     local_action: copy content={{ output.stdout }} dest={{ token_file }}
 
-  - name: Install Network Add-on
-    command: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+  - name: Install Calico CNI
+    become: yes
+    become_user: azureuser
+    shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml 
+    args:
+      chdir: /home/azureuser
+    when: "'master' in inventory_hostname"
 
