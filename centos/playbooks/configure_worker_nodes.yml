@@ -1,13 +1,15 @@
----
 - hosts: kubernetes-worker-nodes
   become: yes
   become_user: azureuser
   vars_files:
-  - env_variables
+    - env_variables
   tasks:
-  - name: Copying token to worker nodes
-    copy: src={{ token_file }} dest=join_token
+    - name: Copy token to worker nodes
+      copy:
+        src: "{{ token_file }}"
+        dest: join_token
+        mode: '0777'
 
-  - name: Joining worker nodes with kubernetes master
-    shell: "`grep -i 'kubeadm join' join_token`"
-
+    - name: Join worker nodes with Kubernetes master
+      shell: "sudo sh join_token"
+      register: join_command
