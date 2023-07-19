@@ -1,3 +1,4 @@
+---
 - hosts: kubernetes-master-nodes
   become: yes
   vars_files:
